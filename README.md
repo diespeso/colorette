@@ -12,7 +12,7 @@ npm install babel-cli babel-preset-react-app
 npx babel --watch react --out-dir build --presets react-app/prod
 ```
 
-## use webpack to build the front end:
+## use webpack to build the front end(only login.jsx right now)
 
 webpack.config.js
 ```javascript
@@ -53,7 +53,7 @@ package.json
   },
 ```
 
-run as ```bash npm run build```
+run as ```npm run build```
 
 Theres a way to automatize building all files, might check out later
 

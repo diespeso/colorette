@@ -6,10 +6,14 @@ use rocket::response::{self, Response, Responder, content, status};
 use rocket::serde::{json::Json, json::json};
 use rocket::{fs::NamedFile, response::{Redirect}};
 
+use routes::responses::JsonWebTokenRes;
+use helpers::encrypt::{sign_token, AuthToken};
+
 mod controllers;
 mod models;
 mod helpers;
 mod database;
+mod routes;
 
 
 #[get("/")]
@@ -21,12 +25,22 @@ fn index() -> String {
 async fn build_dir(file: PathBuf) -> io::Result<NamedFile> {
     NamedFile::open(Path::new("build/").join(file)).await
 }
-
+/*
 #[post("/user", data="<user>")]
 fn create_user(user: Json<models::User>) -> String {
     let _user = user.clone().into_inner();
     controllers::user::create(_user);
     format!("Usuario creado: {:?}", user)
+}
+*/
+#[post("/user", data="<user>")]
+fn create_user(user: Json<models::User>) -> JsonWebTokenRes {
+    JsonWebTokenRes{
+        inner: sign_token(
+            AuthToken::new(0, "0".to_string()),
+            "secreto"
+        ).unwrap()
+    }
 }
 
 #[put("/user/<id>", data="<user>")]

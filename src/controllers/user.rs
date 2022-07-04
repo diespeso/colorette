@@ -4,6 +4,8 @@ use std::hash::Hash;
 use mysql::*;
 use mysql::prelude::*;
 
+use crate::helpers::encrypt::sha256;
+
 use crate::helpers::{StdResult, StdError};
 
 use crate::models::user::User;
@@ -17,7 +19,7 @@ pub fn create(user: User) -> StdResult<User, Box<StdError>> {
             VALUES(:username, :pass)",
             params!{
                 "username" => user.username.clone(),
-                "pass" => user.pass.clone()
+                "pass" => sha256(user.pass.clone()), //TODO: Reconsiderar si deberia encriptar aqui o al recibir el request
             }
     )?;
     Ok(user)

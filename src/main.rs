@@ -5,6 +5,7 @@ use std::{io, path::{Path, PathBuf}};
 use rocket::response::{self, Response, Responder, content, status};
 use rocket::serde::{json::Json, json::json};
 use rocket::{fs::NamedFile, response::{Redirect}};
+use rocket::http::{Cookie, CookieJar};
 
 use routes::responses::JsonWebTokenRes;
 use helpers::encrypt::{sign_token, AuthToken};
@@ -17,8 +18,13 @@ mod routes;
 
 
 #[get("/")]
-fn index() -> String {
-    "Todo bien!".to_string()
+fn index(jar: &CookieJar<'_>) -> String {
+    let jwt = jar.get_pending("jwt");
+    if let Some(j) = jwt{
+        return format!("Bienvenido, {}", j)
+    } else {
+        return format!("Hola, desconocido")
+    }
 }
 
 #[get("/front/<file..>")]

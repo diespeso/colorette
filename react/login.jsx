@@ -18,7 +18,7 @@ class Login extends React.Component {
         })
         .then( response => response.data)
 
-        document.cookie = `jwt=${token}`
+        document.cookie = `jwt=${token};path=/`
     }
 
     render() {

@@ -8,7 +8,7 @@ use rocket::{fs::NamedFile, response::{Redirect}};
 use rocket::http::{Cookie, CookieJar};
 
 use routes::responses::JsonWebTokenRes;
-use helpers::encrypt::{sign_token, AuthToken};
+use helpers::encrypt::{sign_token, verify_token, AuthToken};
 
 mod controllers;
 mod models;
@@ -20,11 +20,14 @@ mod routes;
 #[get("/")]
 fn index(jar: &CookieJar<'_>) -> String {
     let jwt = jar.get_pending("jwt");
-    if let Some(j) = jwt{
+    println!("GET / UWU");
+    verify_token(jwt.unwrap().value(), "secreto");
+    "ok".to_string()
+    /*if let Some(j) = jwt{
         return format!("Bienvenido, {}", j)
     } else {
         return format!("Hola, desconocido")
-    }
+    }*/
 }
 
 #[get("/front/<file..>")]

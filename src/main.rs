@@ -36,9 +36,25 @@ fn profile(jar: &CookieJar<'_>) -> String {
     unimplemented!()
 }
 
-#[post("/api/auth")]
-fn auth(jar: &CookieJar<'_>) -> Result<Json<AuthToken>, String> {
+#[post("/auth")]
+fn auth(jar: &CookieJar<'_>) -> Result<Json<AuthToken>, errors::AuthError> {
+    let pending = jar.get_pending("jwt");
+    /*if pending.is_none() {
+        return Err(errors::AuthError::no_cookie("jwt"))
+    }
+    let jwt = pending.unwrap();*/
+    let jwt;
+    match pending {
+        Some(cookie) => {
+            jwt = cookie;
+        },
+        None => {
+            return Err(errors::AuthError::no_cookie("jwt"));
+        }
+    }
+    println!("{:?}", jwt);
     unimplemented!()
+    //verify_token(, secret)
 }
 
 #[get("/front/<file..>")]
@@ -54,7 +70,15 @@ fn create_user(user: Json<models::User>) -> String {
 }
 */
 #[post("/user", data="<user>")]
-fn create_user(user: Json<models::User>) -> () {
+fn create_user(user: Json<models::User>) -> Result<Json<String>, ()> {
+    //should handle error
+    match controllers::user::create(user.into_inner()) {
+        Ok(data) => {
+            return Ok(Json::from(data.email))
+        },
+        Err(err) => {println!("{:?}", err);}
+    }
+    
     unimplemented!()
     /*JsonWebTokenRes{
         inner: sign_token(
@@ -96,8 +120,9 @@ fn delete_user(id: i32) -> String {
 
 #[launch]
 fn rocket() -> _ {
+    database::create_schema();
     rocket::build()
     .mount("/", routes![index, build_dir])
-    .mount("/api", routes![create_user, get_user, update_user, delete_user, get_user_list])
+    .mount("/api", routes![auth, create_user, get_user, update_user, delete_user, get_user_list])
 
 }

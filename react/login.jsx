@@ -13,7 +13,7 @@ class Login extends React.Component {
         .then(data => console.log(data))*/
 
         let token = await axios.post('/api/user', {
-            username: document.getElementById('user').value,
+            email: document.getElementById('email').value,
             pass: document.getElementById('pass').value
         })
         .then( response => response.data)
@@ -23,8 +23,8 @@ class Login extends React.Component {
 
     render() {
         return (<div>
-            <label>Usuario</label>
-            <input type="text" id="user"></input>
+            <label>E-mail</label>
+            <input type="text" id="email"></input>
             <br/>
             <label>Contraseña</label>
             <input type="password" id="pass"></input>

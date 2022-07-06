@@ -5,18 +5,25 @@ use std::error::Error;
 pub enum AuthError {
     #[response(status=401)]
     ExpiredToken(()), //trick
+    #[response(status=400)]
+    NoCookie(String),
 }
 
 impl AuthError {
     pub fn expired() -> Self {
         Self::ExpiredToken(())
     }
+
+    pub fn no_cookie(cookie_name: &str) -> Self {
+        Self::NoCookie(cookie_name.to_owned())
+    }
 }
 
 impl std::fmt::Display for AuthError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let printable = match *self {
-            AuthError::ExpiredToken(str) => "JWT Credential has expired",
+        let printable = match self {
+            AuthError::ExpiredToken(_) => "JWT Credential has expired",
+            AuthError::NoCookie(s) => return write!(f, "Couldn't find Cookie: {}", s),
         };
         write!(f, "{}", printable)
     }
@@ -32,8 +39,8 @@ mod test {
 
     #[test]
     fn test_auth_error() {
-        let err = AuthError::expired();
+        let err = AuthError::no_cookie("jwt");
         println!("debug: {:?}, normal: {}", err, err);
-        assert_eq!(format!("{}", err), "JWT Credential has expired")
+        assert_eq!(format!("{}", err), "Couldn't find Cookie: jwt")
     }
 }

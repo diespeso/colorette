@@ -15,10 +15,10 @@ use crate::database::get_conn;
 pub fn create(user: User) -> StdResult<User, Box<StdError>> {
     let mut conn = get_conn()?;
     conn.exec_drop(
-        r"INSERT INTO USER(username, pass)
-            VALUES(:username, :pass)",
+        r"INSERT INTO USER(email, pass)
+            VALUES(:email, :pass)",
             params!{
-                "username" => user.username.clone(),
+                "email" => user.email.clone(),
                 "pass" => sha256(user.pass.clone()), //TODO: Reconsiderar si deberia encriptar aqui o al recibir el request
             }
     )?;
@@ -70,12 +70,12 @@ pub fn update(user: User) -> StdResult<User, Box<StdError>> {
     let mut conn = get_conn()?;
     conn.exec_drop(
         r#"UPDATE User SET
-            username = :username,
+            email = :email,
             pass = :pass
             WHERE id = :id
             "#,
         params!{
-            "username" => user.username,
+            "email" => user.email,
             "pass" => user.pass,
             "id" => user.id
         }

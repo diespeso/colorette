@@ -7,7 +7,6 @@ use rocket::serde::{json::Json, json::json};
 use rocket::{fs::NamedFile, response::{Redirect}};
 use rocket::http::{Cookie, CookieJar};
 
-use routes::responses::JsonWebTokenRes;
 use helpers::encrypt::{sign_token, verify_token, AuthToken};
 
 mod controllers;
@@ -15,19 +14,31 @@ mod models;
 mod helpers;
 mod database;
 mod routes;
+mod errors;
 
 
 #[get("/")]
 fn index(jar: &CookieJar<'_>) -> String {
-    let jwt = jar.get_pending("jwt");
+    /*let jwt = jar.get_pending("jwt");
     println!("GET / UWU");
     verify_token(jwt.unwrap().value(), "secreto");
+    "ok".to_string()*/
     "ok".to_string()
     /*if let Some(j) = jwt{
         return format!("Bienvenido, {}", j)
     } else {
         return format!("Hola, desconocido")
     }*/
+}
+
+#[get("/profile")]
+fn profile(jar: &CookieJar<'_>) -> String {
+    unimplemented!()
+}
+
+#[post("/api/auth")]
+fn auth(jar: &CookieJar<'_>) -> Result<Json<AuthToken>, String> {
+    unimplemented!()
 }
 
 #[get("/front/<file..>")]
@@ -43,13 +54,14 @@ fn create_user(user: Json<models::User>) -> String {
 }
 */
 #[post("/user", data="<user>")]
-fn create_user(user: Json<models::User>) -> JsonWebTokenRes {
-    JsonWebTokenRes{
+fn create_user(user: Json<models::User>) -> () {
+    unimplemented!()
+    /*JsonWebTokenRes{
         inner: sign_token(
             AuthToken::new(0, "0".to_string()),
             "secreto"
         ).unwrap()
-    }
+    }*/
 }
 
 #[put("/user/<id>", data="<user>")]

@@ -3,11 +3,13 @@
 use std::{io, path::{Path, PathBuf}};
 
 use rocket::response::{self, Response, Responder, content, status};
-use rocket::serde::{json::Json, json::json};
+use rocket::serde::{json::Json, json::json, Serialize, Deserialize};
 use rocket::{fs::NamedFile, response::{Redirect}};
 use rocket::http::{Cookie, CookieJar};
 
-use helpers::encrypt::{sign_token, verify_token, AuthToken};
+
+use helpers::encrypt::{sign_token, verify_token, AuthToken, self};
+use helpers::StdError;
 
 mod controllers;
 mod models;
@@ -69,14 +71,35 @@ fn create_user(user: Json<models::User>) -> String {
     format!("Usuario creado: {:?}", user)
 }
 */
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct TokenResponse {
+    pub jwt: String
+}
+
 #[post("/user", data="<user>")]
-fn create_user(user: Json<models::User>) -> Result<Json<String>, ()> {
+fn create_user(user: Json<models::User>) -> Result<Json<TokenResponse>, String> {
     //should handle error
     match controllers::user::create(user.into_inner()) {
         Ok(data) => {
-            return Ok(Json::from(data.email))
+            let token;
+            match encrypt::sign_token(json!({"email": data.email}), "SECRETO") {
+                Ok(t) => {
+                    token = t;
+                },
+                Err(e) => {
+                    return Err(e.to_string());
+                }
+            }
+            let res = Json::from(TokenResponse{jwt: token});
+            println!("{:?}", res);
+            return Ok(res);
         },
-        Err(err) => {println!("{:?}", err);}
+        Err(err) => {
+            println!("{:?}", err);
+            return Err(err.to_string());
+        }
     }
     
     unimplemented!()

@@ -80,7 +80,7 @@ pub struct TokenResponse {
 
 #[post("/user", data="<user>")]
 fn create_user(user: Json<models::User>) -> Result<Json<TokenResponse>, String> {
-    //should handle error
+    //should obscure error
     match controllers::user::create(user.into_inner()) {
         Ok(data) => {
             let token;
@@ -101,14 +101,6 @@ fn create_user(user: Json<models::User>) -> Result<Json<TokenResponse>, String> 
             return Err(err.to_string());
         }
     }
-    
-    unimplemented!()
-    /*JsonWebTokenRes{
-        inner: sign_token(
-            AuthToken::new(0, "0".to_string()),
-            "secreto"
-        ).unwrap()
-    }*/
 }
 
 #[put("/user/<id>", data="<user>")]

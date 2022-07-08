@@ -1,7 +1,7 @@
 extern crate rand;
 use rand::prelude::*;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 
 /// With defined type for now
@@ -23,16 +23,72 @@ impl<'a> ClusterMaker<'a> {
             data: data }
     }
 
-    fn cluster_with_iter(&mut self, iters: i32) {
+    pub fn cluster_with_iter(&mut self, iters: i32) {
+        //set centroids, iter 1
+        self.centroids = self.calculate_centroids_first();
+        self.calculate_clusters(iters);
+
+        //for
+        println!("centroids(new): {:?}", self.calculate_centroids());
+
+    }
+
+    fn calculate_centroids(&self) -> Vec<&'a[i32; 3]>  {
+        let mut centroids = Vec::new();
+
+        /// analogous to self.clusters. self.clusters has data -> cluster tag
+        /// while clusters_back will have cluster tag -> vec<data>
+        let mut clusters_back = HashMap::new();
+        if(self.clusters.len() < 1) {
+            panic!("cant calculate centroids without cluster data first");
+        }
+        self.centroids.iter().for_each(|centroid| {
+            clusters_back.insert(centroid, Vec::new());
+        });
+        self.clusters.iter().for_each(|(data, cluster)| {
+            clusters_back
+                .get_mut(&cluster[0]) //when i change clusters to have a vec to just the array, change this
+                .expect("failed to get mutable ref to cluster at calculate_centroids")
+                .push(data)
+        });
+
+        println!("reverse: {:?}", clusters_back);
+        centroids
+    }
+
+    fn calculate_centroids_first(&self) -> Vec<&'a[i32; 3]> {
+        let mut centroids = Vec::new();
         let n = self.data.len() as i32;
         if self.k > n {
             panic!("not enough data to cluster, k is too big")
         }
         let mut rng = rand::thread_rng();
+        let mut i = 0;
+        while i < self.k { //first iteration: get random centroids
+            let gen = self.data[rng.gen_range(0..n) as usize];
+            if centroids.len() > 0 {
+                if centroids.contains(&gen) {
+                    continue; //do it until its a different one
+                }
+            }
+            centroids.push(
+                gen
+            );
+            i += 1;
+        }
+        centroids
+    }
+
+    fn calculate_clusters(&mut self, iters: i32) {
+        let n = self.data.len() as i32;
+        /*if self.k > n {
+            panic!("not enough data to cluster, k is too big")
+        }
+        let mut rng = rand::thread_rng();*/
         //let rando = rng.gen_range(0..n);
         // in a real world setting it wont matter if the choosen are repeated
         // there will be too much test data
-        let mut i = 0;
+        /*let mut i = 0;
         while i < self.k { //first iteration: get random centroids
             let gen = self.data[rng.gen_range(0..n) as usize];
             if self.centroids.len() > 0 {
@@ -44,7 +100,7 @@ impl<'a> ClusterMaker<'a> {
                 gen
             );
             i += 1;
-        }
+        }*/
 
         //algo2 starts
         /*self.centroids.iter().for_each( |centroid| {

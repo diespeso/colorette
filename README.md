@@ -58,4 +58,4 @@ run as ```npm run build```
 Theres a way to automatize building all files, might check out later
 test
 
-![](https://esausilva.com/2017/07/11/uncaught-referenceerror-regeneratorruntime-is-not-defined-two-solutions/)
+https://esausilva.com/2017/07/11/uncaught-referenceerror-regeneratorruntime-is-not-defined-two-solutions/

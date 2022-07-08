@@ -17,6 +17,7 @@ mod helpers;
 mod database;
 mod routes;
 mod errors;
+mod engine;
 
 
 #[get("/")]

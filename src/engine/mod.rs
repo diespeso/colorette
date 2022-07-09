@@ -1,254 +1,9 @@
-extern crate rand;
 use rand::prelude::*;
+use rand::thread_rng;
+use rand::prelude::SliceRandom;
 
-use std::{collections::HashMap, hash::Hash};
-
-
-/// With defined type for now
-/// 
-#[derive(Debug)]
-pub struct ClusterMaker<'a> {
-    k: i32,
-    //centroids: Vec<&'a[i32; 3]>, //should be distanceable
-    centroids: Vec<[i32;3]>,
-    clusters: HashMap<&'a[i32;3], Vec<[i32;3]>>,
-    data: Vec<&'a[i32; 3]>
-}
-
-impl<'a> ClusterMaker<'a> {
-    pub fn new(k: i32, data: Vec<&'a[i32; 3]>) -> Self {
-        ClusterMaker {
-            k,
-            centroids: Vec::new(),
-            clusters: HashMap::new(),
-            data: data }
-    }
-
-    pub fn cluster_with_iter(&mut self, iters: i32) {
-        if iters <= 0 {
-            panic!("wont cluster with less than 1 iteration");
-        }
-        //set centroids, iter 1
-        self.centroids = self.calculate_centroids_first();
-        self.calculate_clusters();
-
-        //for
-        if (iters == 1) { //first iteration already done, sorta
-            return;
-        }
-        for i in 0..(iters - 1) {
-            self.centroids = self.calculate_centroids();
-            self.calculate_clusters();
-            println!("inner test: {:?}, centroids: {:?}", self.get_clusters(), self.centroids);
-        }
-
-    }
-
-    pub fn get_clusters(&self) -> HashMap<[i32;3], Vec<[i32;3]>> {
-        let mut clusters_back = HashMap::new();
-        self.centroids.iter().for_each(|centroid| {
-            clusters_back.insert(*centroid, Vec::new());
-        });
-        self.clusters.iter().for_each(|(data, cluster)| {
-            clusters_back
-                .get_mut(&cluster[0]).expect("failed to unwrap get_mut at get_clusters") //really gotta get rid of t hat useless vec wrapper
-                .push(**data) //lol
-        });
-        clusters_back
-
-    }
-
-    fn calculate_centroids(&self) -> Vec<[i32; 3]>  {
-        /// analogous to self.clusters. self.clusters has data -> cluster tag
-        /// while clusters_back will have cluster tag -> vec<data>
-        let mut clusters_back = HashMap::new();
-        let mut centroid_avg = HashMap::new();
-        if(self.clusters.len() < 1) {
-            panic!("cant calculate centroids without cluster data first");
-        }
-        self.centroids.iter().for_each(|centroid| {
-            clusters_back.insert(centroid, Vec::new());
-            centroid_avg.insert(centroid, [0, 0, 0]);
-        });
-        //println!("clusts: {:?}", clusters_back);
-        
-        self.clusters.iter().for_each(|(data, cluster)| { //
-            clusters_back
-                .get_mut(&cluster[0]) //when i change clusters to have a vec to just the array, change this
-                .expect("failed to get mutable ref to cluster at calculate_centroids")
-                .push(data)
-        });
-        let mut sum = [0, 0, 0];
-        let mut count = 0;
-        clusters_back.iter().for_each(|(cluster, data)| { //for each cluster -> data set
-            data.iter().for_each(|data_point| { //for every data point y data set
-                for i in 0..sum.len() { //for every number in  the data array
-                    sum[i] += data_point[i];
-                }
-                count += 1;
-            });
-            *centroid_avg
-                .get_mut(cluster)
-                .expect("failed to get mut ref in centroid_avg")
-                = [sum[0]/count, sum[1]/count, sum[2]/count]; //avg
-            //restart
-            sum = [0, 0, 0];
-            count = 0;
-        });
-
-        centroid_avg.iter().map(|(original, average)| {
-            *average
-        }).collect()
-    }
-
-    fn calculate_centroids_first(&self) -> Vec<[i32; 3]> {
-        let mut centroids = Vec::new();
-        let n = self.data.len() as i32;
-        if self.k > n {
-            panic!("not enough data to cluster, k is too big")
-        }
-        let mut rng = rand::thread_rng();
-        let mut i = 0;
-        while i < self.k { //first iteration: get random centroids
-            let gen = self.data[rng.gen_range(0..n) as usize];
-            if centroids.len() > 0 {
-                if centroids.contains(gen) {
-                    continue; //do it until its a different one
-                }
-            }
-            centroids.push(
-                *gen
-            );
-            i += 1;
-        }
-        centroids
-    }
-
-    fn calculate_clusters(&mut self) {
-        let n = self.data.len() as i32;
-        /*if self.k > n {
-            panic!("not enough data to cluster, k is too big")
-        }
-        let mut rng = rand::thread_rng();*/
-        //let rando = rng.gen_range(0..n);
-        // in a real world setting it wont matter if the choosen are repeated
-        // there will be too much test data
-        /*let mut i = 0;
-        while i < self.k { //first iteration: get random centroids
-            let gen = self.data[rng.gen_range(0..n) as usize];
-            if self.centroids.len() > 0 {
-                if self.centroids.contains(&gen) {
-                    continue; //do it until its a different one
-                }
-            }
-            self.centroids.push(
-                gen
-            );
-            i += 1;
-        }*/
-
-        //algo2 starts
-        /*self.centroids.iter().for_each( |centroid| {
-            self.clusters.insert(centroid, Vec::new());
-        });*/
-        let mut closest_distance: Option<i32> = None;
-        let mut closest_centroid = None;
-        for i in 0..n { //for every data point
-            let cur = self.data[i as usize];
-            self.centroids.iter().for_each(|centroid|{ //for every centroid
-                if let Some(mut c_dist) = closest_distance {
-                    let cur_dist = centroid.get_distance_i32(&cur); //get distance relative to this data point
-                    if cur_dist < c_dist {
-                        c_dist = cur_dist;
-                        closest_centroid = Some(*centroid);
-                    }
-                } else {
-                    let cur_centroid = self.centroids[0];
-                    closest_distance = Some(cur_centroid.get_distance_i32(&cur));
-                    closest_centroid = Some(cur_centroid);
-                }
-            });
-            //println!("closest:{:?}, dist: {:?}", closest_centroid, closest_distance);
-            //at this point we should have the closest centroid, ready to store
-            //disadvantage: repeated values are ignored in clustering
-            self.clusters.insert(
-                cur,
-                Vec::from([
-                    closest_centroid.expect("Failed to calculate closest centroid at ClusterMaker")
-                ])
-            );
-            /*self.clusters
-                .insert(cur, 
-                    Vec::new());
-            println!("final status: {:?}, {:?}", cur, closest_centroid.unwrap());
-            self.clusters
-                .get_mut(cur)
-                .expect("Failed to get mutable clusters at ClusterMaker")
-                .push(closest_centroid.expect("Failed to calculate closest centroid at ClusterMaker"));
-            */
-                /*self.clusters
-                .get_mut(cur)
-                .expect("Failed to get mutable clusters at ClusterMaker")
-                .push(closest_centroid.expect("Failed to calculate closest centroid at ClusterMaker"));
-            */
-            //restart
-
-            //println!("clusters: {:?}", self.clusters);
-
-            closest_distance = None;
-            closest_centroid = None;
-        }
-        //algo 2 ends
-
-        //set centroid keys in cluster map
-        /*self.centroids.iter().for_each(
-            |centroid| {
-                self.clusters.insert(*centroid, Vec::new());
-            }
-        );*/
-        /*
-        //let mut distances = Vec::new();
-        //calculate distance between every datapoint and every centroid
-        let mut deltas: HashMap<&[i32;3], HashMap<&[i32;3], i32>> = HashMap::new();
-        for i in 0..n {
-            deltas.insert(
-                self.data[i as usize],
-                self.centroids
-                .iter().map(
-                    |centroid| {
-                        (*centroid, self.data[i as usize].get_distance_i32(&centroid))
-                    }
-                ).collect()
-            );
-        }   
-
-        //set clusters using deltas, for every delta find the smallest distance
-        //and assign the deltas datapoint to the cluster
-        //TODO: OPTIMIZATION: Find a way to put this inside the original for
-        let mut closest_distance = i32::MAX;
-        let mut closest_centroid = [0, 0, 0]; //might be risky, maybe use option
-        deltas.iter().for_each( //iter every data point
-            |(data_point, distances)| {
-                distances.iter().for_each( //iter distances relative to every centroid
-                    |(centroid, distance)| {
-                        if *distance < closest_distance {
-                            closest_distance = *distance;
-                            closest_centroid = **centroid; //xd
-                        }
-                    }
-                );
-                self.clusters.get_mut(&closest_centroid)
-                    .expect("Failed to get mut referece to clusters")
-                    .push(*data_point);
-                //println!("{:?}", distances)
-                closest_distance = i32::MAX;
-                closest_centroid = [0, 0, 0];
-            }
-        );
-        */
-    }
-}
-
+use std::collections::HashMap;
+use std::hash::Hash;
 
 /// Distanceable is trait of a struct that can have its distance measure with other
 /// instance of the same struct
@@ -256,38 +11,159 @@ pub trait Distanceable {
     /// Other should usually be Self
     type Other: Distanceable;
     fn get_distance_f64(&self, other: &Self::Other) -> f64{unimplemented!()}
-    fn get_distance_i32(&self, other: &Self::Other) -> i32{unimplemented!()}
+    fn get_distance_u32(&self, other: &Self::Other) -> u32{unimplemented!()}
 }
 
-impl Distanceable for [i32; 3] {
+impl Distanceable for [u32; 3] {
     type Other = Self;
-    fn get_distance_i32(&self, other: &Self::Other) -> i32 {
+    fn get_distance_u32(&self, other: &Self::Other) -> u32 {
         return f32::sqrt(
-            (other[0] - self[0]).pow(2) as f32
-            + (other[1] - self[1]).pow(2) as f32
-            + (other[2] - self[2]).pow(2) as f32
-        ) as i32
+            (other[0] as f32 - self[0] as f32).powf(2.0)
+            + (other[1] as f32 - self[1] as f32).powf(2.0)
+            + (other[2] as f32 - self[2] as f32).powf(2.0)
+        ) as u32
     }
 }
 
-#[cfg(test)]
-mod tests_engine {
-    use crate::engine::ClusterMaker;
 
-    use super::Distanceable;
+
+/* 
+    suffle
+    it 1:
+        encontrar centroides: fn
+        acomodar centroide: closest: fn
+*/
+
+/// first, with data cloning, bad performance maybe
+#[derive(Debug)]
+pub struct ClusterMaker {
+    pub k: u32,
+    pub data: Vec<[u32; 3]>,
+    pub centroids: Vec<[u32; 3]>,
+    pub clusters: HashMap<[u32; 3], Vec<[u32; 3]>>
+}
+
+impl ClusterMaker {
+    pub fn new(k: u32) -> Self {
+        ClusterMaker { k: k,
+            data: Vec::new(),
+            centroids: Vec::new(),
+            clusters: HashMap::new() }
+    }
+    /// Adds the data to cluster with,
+    pub fn with_data(mut self, data: &Vec<[u32;3]>) -> Self {
+        self.data = data.clone(); //store original
+        let mut clone = data.clone();
+        clone.shuffle(&mut thread_rng()); //shuffled
+        self
+
+        //call functions to calculate first centroid and clusters
+    }
+
+    pub fn cluster(&mut self) {
+        self.centroids = self.calculate_first_centroids();
+        self.clusters = self.compute_clusters();
+        self.get_cluster_avg(&self.centroids[0]);
+    }
+
+    /// First centroids are just random
+    pub fn calculate_first_centroids(&self) -> Vec<[u32; 3]> {
+        let mut i: usize = 0;
+        let mut result = Vec::new();
+        while i < self.k as usize{ //first k clusters
+            let centroid = self.data[rand::thread_rng().gen_range(0..self.data.len())];
+            if result.contains(&centroid) { //cant have repeating ones
+                continue;
+            }
+            result.push(centroid);
+            i += 1;
+        }
+        result
+    }
+
+    /// any except first iteration
+    pub fn calculate_centroids(&self) -> Vec<[u32; 3]> {
+        unimplemented!()
+    }
+
+    pub fn get_cluster_avg(&self, centroid: &[u32; 3]) -> [u32; 3] {
+        let mut sum = [0, 0, 0];
+        let mut count = 0; //wont hurt anybody
+        self.clusters.get(centroid)
+            .expect("failed to get ref to clusters in get_cluster_avg")
+            .iter().for_each(|data_point|{ //get every rgb component
+                for i in 0..sum.len() {
+                    sum[i] += data_point[i];
+                }
+                count += 1;
+                /*sum.iter_mut().enumerate().for_each(|(i, _)|{
+                    sum[i] = data_point[i];
+                })*/
+            });
+        if count == 0 { //average of centroid is centroid i guess
+            return centroid.clone();
+        }
+        for i in 0..sum.len() {
+            sum[i] = (sum[i] as f32 / count as f32) as u32;
+        }
+        println!("centroid: {:?}, data: {:?}, avg: {:?}",
+            centroid, 
+            self.clusters.get(centroid).unwrap(),
+            sum);
+        sum
+    }
+
+    pub fn compute_clusters(&self) -> HashMap<[u32;3], Vec<[u32;3]>> {
+        let mut result = HashMap::new();
+        self.centroids.iter().for_each(|centroid| { //start with every centroid as key
+            result.insert(*centroid, Vec::new());
+        });
+        self.data.iter().for_each(|data_point|{
+            //println!("data: {:?}, distances: {:?}", data_point, self.calculate_centroid_distance(data_point));
+            let distances = self.calculate_centroid_distance(data_point);
+            let closest = distances.iter()
+                .position(|dist| dist == distances.iter().min()
+                    .expect("Couldnt find smallest distance"))
+                .expect("Couldnt find position in vec");
+            //println!("data: {:?}, closest: {:?}", data_point, self.centroids[closest]);
+            result.get_mut(&self.centroids[closest])
+                .expect("failed to get mut ref in compute_clusters")
+                .push(*data_point);
+        });
+        result
+    }
+
+    pub fn calculate_centroid_distance(&self, data_point: &[u32; 3]) -> Vec<u32> {
+        self.centroids.iter().map(|centroid| {
+            /*println!("\tdata:{:?}, centroid: {:?}, dist: {:?}",
+                data_point,
+                centroid,
+                data_point.get_distance_u32(centroid)
+            );*/
+            data_point.get_distance_u32(centroid)
+        }).collect()
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use rand::thread_rng;
+    use rand::prelude::SliceRandom;
+
+    use super::ClusterMaker;
 
     #[test]
     fn test_engine() {
-        let dataset = [[0, 0, 0], [1, 2, 3], [255, 255, 255], [160, 0, 0],
-        [1, 1, 1], [250, 250, 250], [0, 255, 0]];
-        
-        let mut cluster = ClusterMaker::new(2, 
-            vec![&dataset[0], &dataset[1],
-            &dataset[2], &dataset[3],
-            &dataset[4], &dataset[5],
-            &dataset[6]]);
-        println!("{:?}", cluster.get_clusters());
-        cluster.cluster_with_iter(10);
-        println!("{:?}", cluster.get_clusters());
+        let mut test_data = Vec::from([
+            [0, 0, 0],
+            [100, 100, 100],
+            [120, 0, 255],
+            [255, 255, 255],
+            [0, 100, 0]
+        ]);
+        let mut cluster = ClusterMaker::new(3)
+            .with_data(&test_data);
+        cluster.cluster();
     }
 }

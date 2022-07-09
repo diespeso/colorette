@@ -39,6 +39,7 @@ impl<'a> ClusterMaker<'a> {
         for i in 0..(iters - 1) {
             self.centroids = self.calculate_centroids();
             self.calculate_clusters();
+            println!("inner test: {:?}, centroids: {:?}", self.get_clusters(), self.centroids);
         }
 
     }
@@ -72,7 +73,6 @@ impl<'a> ClusterMaker<'a> {
         //println!("clusts: {:?}", clusters_back);
         
         self.clusters.iter().for_each(|(data, cluster)| { //
-            println!("clustsnorm: {:?}, back: {:?}", cluster, clusters_back);
             clusters_back
                 .get_mut(&cluster[0]) //when i change clusters to have a vec to just the array, change this
                 .expect("failed to get mutable ref to cluster at calculate_centroids")
@@ -278,14 +278,16 @@ mod tests_engine {
 
     #[test]
     fn test_engine() {
-        let dataset = [[0, 0, 0], [1, 2, 3], [255, 255, 255], [160, 0, 0]];
-        println!("distance: {}", dataset[0].get_distance_i32(&dataset[2]));
+        let dataset = [[0, 0, 0], [1, 2, 3], [255, 255, 255], [160, 0, 0],
+        [1, 1, 1], [250, 250, 250], [0, 255, 0]];
+        
         let mut cluster = ClusterMaker::new(2, 
             vec![&dataset[0], &dataset[1],
-            &dataset[2], &dataset[3]]);
-        println!("{:?}", cluster);
+            &dataset[2], &dataset[3],
+            &dataset[4], &dataset[5],
+            &dataset[6]]);
+        println!("{:?}", cluster.get_clusters());
         cluster.cluster_with_iter(10);
-        println!("{:?}", cluster);
-        println!("cluts> {:?}", cluster.get_clusters());
+        println!("{:?}", cluster.get_clusters());
     }
 }

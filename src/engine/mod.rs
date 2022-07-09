@@ -9,8 +9,9 @@ use std::{collections::HashMap, hash::Hash};
 #[derive(Debug)]
 pub struct ClusterMaker<'a> {
     k: i32,
-    centroids: Vec<&'a[i32; 3]>, //should be distanceable
-    clusters: HashMap<&'a[i32;3], Vec<&'a[i32;3]>>,
+    //centroids: Vec<&'a[i32; 3]>, //should be distanceable
+    centroids: Vec<[i32;3]>,
+    clusters: HashMap<&'a[i32;3], Vec<[i32;3]>>,
     data: Vec<&'a[i32; 3]>
 }
 
@@ -24,39 +25,83 @@ impl<'a> ClusterMaker<'a> {
     }
 
     pub fn cluster_with_iter(&mut self, iters: i32) {
+        if iters <= 0 {
+            panic!("wont cluster with less than 1 iteration");
+        }
         //set centroids, iter 1
         self.centroids = self.calculate_centroids_first();
-        self.calculate_clusters(iters);
+        self.calculate_clusters();
 
         //for
-        println!("centroids(new): {:?}", self.calculate_centroids());
+        if (iters == 1) { //first iteration already done, sorta
+            return;
+        }
+        for i in 0..(iters - 1) {
+            self.centroids = self.calculate_centroids();
+            self.calculate_clusters();
+        }
 
     }
 
-    fn calculate_centroids(&self) -> Vec<&'a[i32; 3]>  {
-        let mut centroids = Vec::new();
+    pub fn get_clusters(&self) -> HashMap<[i32;3], Vec<[i32;3]>> {
+        let mut clusters_back = HashMap::new();
+        self.centroids.iter().for_each(|centroid| {
+            clusters_back.insert(*centroid, Vec::new());
+        });
+        self.clusters.iter().for_each(|(data, cluster)| {
+            clusters_back
+                .get_mut(&cluster[0]).expect("failed to unwrap get_mut at get_clusters") //really gotta get rid of t hat useless vec wrapper
+                .push(**data) //lol
+        });
+        clusters_back
 
+    }
+
+    fn calculate_centroids(&self) -> Vec<[i32; 3]>  {
         /// analogous to self.clusters. self.clusters has data -> cluster tag
         /// while clusters_back will have cluster tag -> vec<data>
         let mut clusters_back = HashMap::new();
+        let mut centroid_avg = HashMap::new();
         if(self.clusters.len() < 1) {
             panic!("cant calculate centroids without cluster data first");
         }
         self.centroids.iter().for_each(|centroid| {
             clusters_back.insert(centroid, Vec::new());
+            centroid_avg.insert(centroid, [0, 0, 0]);
         });
-        self.clusters.iter().for_each(|(data, cluster)| {
+        //println!("clusts: {:?}", clusters_back);
+        
+        self.clusters.iter().for_each(|(data, cluster)| { //
+            println!("clustsnorm: {:?}, back: {:?}", cluster, clusters_back);
             clusters_back
                 .get_mut(&cluster[0]) //when i change clusters to have a vec to just the array, change this
                 .expect("failed to get mutable ref to cluster at calculate_centroids")
                 .push(data)
         });
+        let mut sum = [0, 0, 0];
+        let mut count = 0;
+        clusters_back.iter().for_each(|(cluster, data)| { //for each cluster -> data set
+            data.iter().for_each(|data_point| { //for every data point y data set
+                for i in 0..sum.len() { //for every number in  the data array
+                    sum[i] += data_point[i];
+                }
+                count += 1;
+            });
+            *centroid_avg
+                .get_mut(cluster)
+                .expect("failed to get mut ref in centroid_avg")
+                = [sum[0]/count, sum[1]/count, sum[2]/count]; //avg
+            //restart
+            sum = [0, 0, 0];
+            count = 0;
+        });
 
-        println!("reverse: {:?}", clusters_back);
-        centroids
+        centroid_avg.iter().map(|(original, average)| {
+            *average
+        }).collect()
     }
 
-    fn calculate_centroids_first(&self) -> Vec<&'a[i32; 3]> {
+    fn calculate_centroids_first(&self) -> Vec<[i32; 3]> {
         let mut centroids = Vec::new();
         let n = self.data.len() as i32;
         if self.k > n {
@@ -67,19 +112,19 @@ impl<'a> ClusterMaker<'a> {
         while i < self.k { //first iteration: get random centroids
             let gen = self.data[rng.gen_range(0..n) as usize];
             if centroids.len() > 0 {
-                if centroids.contains(&gen) {
+                if centroids.contains(gen) {
                     continue; //do it until its a different one
                 }
             }
             centroids.push(
-                gen
+                *gen
             );
             i += 1;
         }
         centroids
     }
 
-    fn calculate_clusters(&mut self, iters: i32) {
+    fn calculate_clusters(&mut self) {
         let n = self.data.len() as i32;
         /*if self.k > n {
             panic!("not enough data to cluster, k is too big")
@@ -241,5 +286,6 @@ mod tests_engine {
         println!("{:?}", cluster);
         cluster.cluster_with_iter(10);
         println!("{:?}", cluster);
+        println!("cluts> {:?}", cluster.get_clusters());
     }
 }

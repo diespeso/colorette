@@ -28,7 +28,7 @@ fn process_image() {
         let mut c_maker = ClusterMaker::new(5)
             .with_data(&pixels);
         
-        //c_maker.cluster(5);
+        c_maker.cluster(5);
         let mut file = File::create("image_dump.txt").expect("failed to create dump file");
         file.write_all(
             //format!("{:?}", c_maker.clusters.keys()).as_bytes()

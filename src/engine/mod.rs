@@ -5,6 +5,74 @@ use rand::prelude::SliceRandom;
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use std::io::Cursor;
+use std::fs::File;
+use std::io::Write;
+use image::io::Reader;
+use image::Pixel;
+use image::GenericImageView;
+use image::DynamicImage;
+
+fn process_image() {
+    let img = Reader::open("test.jpg")
+        .expect("failed to load image test.jpg")
+        .decode()
+        .expect("failed to decode image");
+        let pixels: Vec<[u32; 3]> = img.pixels().map(|(x, y, pixel)| {
+            [pixel.channels()[0] as u32
+            , pixel.channels()[1] as u32
+            , pixel.channels()[2] as u32]
+            //ignore alpha
+        }).collect();
+        /*println!("pixels: {:?}", pixels.len());
+        let mut c_maker = ClusterMaker::new(5)
+            .with_data(&pixels);
+        
+        //c_maker.cluster(5);
+        let mut file = File::create("image_dump.txt").expect("failed to create dump file");
+        file.write_all(
+            //format!("{:?}", c_maker.clusters.keys()).as_bytes()
+            format!("{:?}", c_maker.clusters).as_bytes()
+        ).expect("Failed to write to file");*/
+}
+/*
+pub struct ImageSampler<'a> {
+    image: &'a DynamicImage,
+    shuffle: bool,
+    proportion: f32,
+}
+
+impl<'a> ImageSampler<'a> {
+    pub fn new(image: &'a DynamicImage) -> Self{
+        Self { image: image, shuffle: false, proportion: 1.0 }
+    }
+
+    pub fn with_shuffle(mut self) -> Self {
+        self.shuffle = true;
+        self
+    }
+
+    pub fn with_proportion(mut self, proportion: f32) -> Self {
+        self.proportion = proportion;
+        self
+    }
+
+    /// lazy, will only sample once it reaches this point
+    pub fn sample(&mut self) -> DynamicImage {
+        let mut redim = None;
+        if self.proportion != 1.0 { //proportion was properly set, no check for errors yet
+            redim = Some(
+                (self.image.width() as f32 * self.proportion, self.image.height() as f32 * self.proportion)  
+            );
+        }
+        if let Some(dims) = redim {
+
+        }
+        unimplemented!()
+    }
+}
+*/
+
 /// Distanceable is trait of a struct that can have its distance measure with other
 /// instance of the same struct
 pub trait Distanceable {
@@ -24,15 +92,6 @@ impl Distanceable for [u32; 3] {
         ) as u32
     }
 }
-
-
-
-/* 
-    suffle
-    it 1:
-        encontrar centroides: fn
-        acomodar centroide: closest: fn
-*/
 
 /// first, with data cloning, bad performance maybe
 #[derive(Debug)]
@@ -60,10 +119,19 @@ impl ClusterMaker {
         //call functions to calculate first centroid and clusters
     }
 
-    pub fn cluster(&mut self) {
+    pub fn cluster(&mut self, i: u32) {
+        if i <= 0 {
+            panic!("cant cluster in 0 iterations");
+        }
         self.centroids = self.calculate_first_centroids();
         self.clusters = self.compute_clusters();
-        self.get_cluster_avg(&self.centroids[0]);
+        if i == 1 {
+            return
+        }
+        for i in 0..(i - 1) {
+            self.centroids = self.calculate_centroids();
+            self.clusters = self.compute_clusters();
+        }        
     }
 
     /// First centroids are just random
@@ -83,7 +151,9 @@ impl ClusterMaker {
 
     /// any except first iteration
     pub fn calculate_centroids(&self) -> Vec<[u32; 3]> {
-        unimplemented!()
+        self.centroids.iter().map(|centroid|{
+            self.get_cluster_avg(centroid)
+        }).collect()
     }
 
     pub fn get_cluster_avg(&self, centroid: &[u32; 3]) -> [u32; 3] {
@@ -96,9 +166,6 @@ impl ClusterMaker {
                     sum[i] += data_point[i];
                 }
                 count += 1;
-                /*sum.iter_mut().enumerate().for_each(|(i, _)|{
-                    sum[i] = data_point[i];
-                })*/
             });
         if count == 0 { //average of centroid is centroid i guess
             return centroid.clone();
@@ -106,10 +173,6 @@ impl ClusterMaker {
         for i in 0..sum.len() {
             sum[i] = (sum[i] as f32 / count as f32) as u32;
         }
-        println!("centroid: {:?}, data: {:?}, avg: {:?}",
-            centroid, 
-            self.clusters.get(centroid).unwrap(),
-            sum);
         sum
     }
 
@@ -119,13 +182,11 @@ impl ClusterMaker {
             result.insert(*centroid, Vec::new());
         });
         self.data.iter().for_each(|data_point|{
-            //println!("data: {:?}, distances: {:?}", data_point, self.calculate_centroid_distance(data_point));
             let distances = self.calculate_centroid_distance(data_point);
             let closest = distances.iter()
                 .position(|dist| dist == distances.iter().min()
                     .expect("Couldnt find smallest distance"))
                 .expect("Couldnt find position in vec");
-            //println!("data: {:?}, closest: {:?}", data_point, self.centroids[closest]);
             result.get_mut(&self.centroids[closest])
                 .expect("failed to get mut ref in compute_clusters")
                 .push(*data_point);
@@ -135,11 +196,6 @@ impl ClusterMaker {
 
     pub fn calculate_centroid_distance(&self, data_point: &[u32; 3]) -> Vec<u32> {
         self.centroids.iter().map(|centroid| {
-            /*println!("\tdata:{:?}, centroid: {:?}, dist: {:?}",
-                data_point,
-                centroid,
-                data_point.get_distance_u32(centroid)
-            );*/
             data_point.get_distance_u32(centroid)
         }).collect()
     }
@@ -151,7 +207,7 @@ mod test {
     use rand::thread_rng;
     use rand::prelude::SliceRandom;
 
-    use super::ClusterMaker;
+    use super::{ClusterMaker, process_image};
 
     #[test]
     fn test_engine() {
@@ -162,8 +218,15 @@ mod test {
             [255, 255, 255],
             [0, 100, 0]
         ]);
-        let mut cluster = ClusterMaker::new(3)
+        let mut cluster = ClusterMaker::new(2)
             .with_data(&test_data);
-        cluster.cluster();
+        println!("{:?}", cluster);
+        cluster.cluster(3);
+        println!("{:?}", cluster);
+    }
+
+    #[test]
+    fn test_processing() {
+        process_image();
     }
 }

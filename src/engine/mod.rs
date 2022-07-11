@@ -24,7 +24,7 @@ fn process_image() {
             , pixel.channels()[2] as u32]
             //ignore alpha
         }).collect();
-        /*println!("pixels: {:?}", pixels.len());
+        println!("pixels: {:?}", pixels.len());
         let mut c_maker = ClusterMaker::new(5)
             .with_data(&pixels);
         
@@ -33,7 +33,7 @@ fn process_image() {
         file.write_all(
             //format!("{:?}", c_maker.clusters.keys()).as_bytes()
             format!("{:?}", c_maker.clusters).as_bytes()
-        ).expect("Failed to write to file");*/
+        ).expect("Failed to write to file");
 }
 /*
 pub struct ImageSampler<'a> {

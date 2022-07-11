@@ -31,8 +31,8 @@ fn process_image() {
         c_maker.cluster(5);
         let mut file = File::create("image_dump.txt").expect("failed to create dump file");
         file.write_all(
-            //format!("{:?}", c_maker.clusters.keys()).as_bytes()
-            format!("{:?}", c_maker.clusters).as_bytes()
+            format!("{:?}", c_maker.clusters.keys()).as_bytes()
+            //format!("{:?}", c_maker.clusters).as_bytes()
         ).expect("Failed to write to file");
 }
 /*

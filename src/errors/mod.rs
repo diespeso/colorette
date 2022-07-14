@@ -33,6 +33,32 @@ impl Error for AuthError {
 
 }
 
+#[derive(Responder, Debug)]
+pub enum SessionError {
+    #[response(status=404)]
+    UserNotFound(String),
+    #[response(status=403)]
+    AuthError(String)
+}
+
+impl SessionError {
+    pub fn not_found(user: String) -> Self {
+        Self::UserNotFound(user)
+    }
+
+    pub fn auth_error(authError: String) -> Self {
+        Self::AuthError(authError)
+    }
+}
+
+impl std::fmt::Display for SessionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self) //TODO: might be better to use a personalized for each enum case
+    }
+}
+
+impl std::error::Error for SessionError {}
+
 #[cfg(test)]
 mod test {
     use super::AuthError;

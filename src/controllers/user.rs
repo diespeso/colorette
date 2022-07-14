@@ -42,7 +42,7 @@ pub fn read(id: i32) -> StdResult<User, Box<StdError>> {
     }
 }
 
-
+/// Looks for a user in database using a UserSearch instance
 pub fn search(user: models::user::UserSearch) -> StdResult<User, Box<StdError>> {
     //look for it in db
     let mut conn = get_conn()?;

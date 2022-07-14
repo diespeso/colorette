@@ -1,30 +1,34 @@
 use crate::TokenResponse;
 use rocket::serde::{json::Json, json::json, Serialize, Deserialize};
 
-use crate::controllers::user;
+use crate::controllers;
 use crate::models;
-use crate::helpers::encrypt;
+use crate::helpers::{self, encrypt};
+use crate::errors;
 
 
 #[post("/session", data="<user>")]
-pub fn create_session(user: Json<models::User>) -> Result<Json<TokenResponse>, String>{
-    let created = user::create(user.into_inner());
-    match created {
-        Ok(user_data) => {
-            let token;
-            match encrypt::sign_token(json!({"email": user_data.email}), "SECRETO") {
+pub fn create_session(user: Json<models::User>) -> Result<Json<TokenResponse>, errors::SessionError>{
+    let user_data = user.clone().into_inner();
+    let search_data = models::user::UserSearch::from_user_ref(&user_data);
+    let read = controllers::user::search(search_data);
+    match read { 
+        Ok(result) => { //user found
+            //generate jwt
+            match encrypt::sign_token(json!({"email": result.email}), "SECRETO") {
                 Ok(t) => {
-                    token = t;
+                    Ok(Json::from(TokenResponse{jwt: t})) //send generated token
                 },
-                Err(e) => {
-                    return Err(e.to_string());
+                Err(e) => { //jwt error, special error
+                    println!("unhandled: {:?}", e);
+                    Err(errors::SessionError::auth_error(e.to_string()))
                 }
-            }
-            let res = Json::from(TokenResponse{jwt: token});
-            return Ok(res);
-        },
-        Err(err) => {
-            return Err(err.to_string());
+            } 
+        }, Err(err) => {
+            //let e = errors::SessionError::not_found(user.email.clone());
+            let e = errors::SessionError::not_found(err.to_string());
+            println!("{}", e);
+            Err(e)
         }
     }
 }

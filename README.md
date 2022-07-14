@@ -3,9 +3,17 @@ Color palette generation and extraction in the shape of a REST API (mostly exper
 
 NOT READY YET
 
-Example of the 2.0.0 (first was no good) version of the color palette extractor with k means
-k = 5
-iterations = 5
+## BRANCH FOR PERFORMANCE TWEAKS
+apparently there are some nasty nested loops on main that made the program 300% slower.
+
+#### With the old algorithm(1280x892, k=5, i=5):
+![](https://github.com/diespeso/colorette/blob/engine_performance/img/old_algorithm.png)
+
+#### With the new algorihtm(1280x892, k=5, i=5):
+![](https://github.com/diespeso/colorette/blob/engine_performance/img/new_algorithm.png)
+
+The color palette for both is pretty much the same, 3 blues, 1 brown, 1 yellow for the sunflower test image.
+
 
 ### input image / rgb color output
 ![](https://github.com/diespeso/colorette/blob/main/img/kmeans_input_result.png)

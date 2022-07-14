@@ -8,7 +8,7 @@ use crate::helpers::encrypt::sha256;
 
 use crate::helpers::{StdResult, StdError};
 
-use crate::models::user::User;
+use crate::models::{self, user::User};
 use super::BDNotFoundError;
 use crate::database::get_conn;
 
@@ -40,6 +40,40 @@ pub fn read(id: i32) -> StdResult<User, Box<StdError>> {
     } else {
         Ok(row[0].clone())
     }
+}
+
+
+pub fn search(user: models::user::UserSearch) -> StdResult<User, Box<StdError>> {
+    //look for it in db
+    let mut conn = get_conn()?;
+
+    let mut query = "SELECT * FROM user".to_string(); //building query
+    let mut changed = false;
+    if let Some(s_id) = user.id {
+        query += format!(r#" where id = "{}""#, s_id).as_ref();
+        changed = true;
+    }
+    if let Some(s_email) = user.email {
+        if changed {
+            query += format!(r#" and email = "{}""#, s_email).as_ref();
+        } else {
+            query += format!(r#" where email = "{}""#, s_email).as_ref();
+            changed = true;
+        }
+    }
+    //search by pass not valid
+    let result = conn.query_map(query, |(id, email, pass)| { //map db user to model user
+        User::new(id, email, pass)
+    })?;
+    if result.len() == 0 { //user not found
+        Err(
+            Box::new(BDNotFoundError::new("User".to_owned(), HashMap::new()))
+        )
+    } else {
+        Ok(result[0].clone())
+    }
+
+    //make the User obj
 }
 
 pub fn readList() -> StdResult<Vec<User>, Box<StdError>> {
@@ -97,4 +131,16 @@ pub fn delete(id: i32) -> StdResult<User, Box<StdError>> {
         DELETE FROM User WHERE id = :id",
         params!{"id" => id})?;
     Ok(old)
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::search;
+    use crate::models::user::{User, UserSearch};
+    #[test]
+    fn test_search_user() {
+        let search_data = UserSearch{id: None, email: Some("test".to_string()), pass: None};
+        let res = search(search_data).expect("failed in user search i guess");
+        println!("{:?}", res);
+    }
 }

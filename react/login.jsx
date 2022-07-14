@@ -11,12 +11,13 @@ class Login extends React.Component {
         /*var f = await fetch('http://localhost:8000/api/user')
         .then(response => response.json())
         .then(data => console.log(data))*/
-
+        //this is for sign up
+        /*
         let token = await axios.post('/api/user', {
             email: document.getElementById('email').value,
             pass: document.getElementById('pass').value
         })
-        .then( response => response.data)
+        .then( response => response.data)*/
 
         document.cookie = `jwt=${token.jwt};path=/`
     }

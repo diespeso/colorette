@@ -13,18 +13,19 @@ use image::Pixel;
 use image::GenericImageView;
 use image::DynamicImage;
 
-fn process_image() {
+pub fn process_image() {
     let img = Reader::open("test.jpg")
         .expect("failed to load image test.jpg")
         .decode()
         .expect("failed to decode image");
-        let pixels: Vec<[u32; 3]> = img.pixels().map(|(x, y, pixel)| {
+        let mut pixels: Vec<[u32; 3]> = img.pixels().map(|(x, y, pixel)| {
             [pixel.channels()[0] as u32
             , pixel.channels()[1] as u32
             , pixel.channels()[2] as u32]
             //ignore alpha
         }).collect();
-        println!("pixels: {:?}", pixels.len());
+        pixels.shuffle(&mut thread_rng()); //testing, shuffle data
+
         let mut c_maker = ClusterMaker::new(5)
             .with_data(&pixels);
         
@@ -57,6 +58,47 @@ impl Distanceable for [u32; 3] {
             + (other[1] as f32 - self[1] as f32).powf(2.0)
             + (other[2] as f32 - self[2] as f32).powf(2.0)
         ) as u32
+    }
+}
+
+#[derive(Debug)]
+pub struct PaletteExtractor {
+    image_file: Option<String>,
+    cluster_maker: Option<ClusterMaker>,
+    temp_k: u32,
+}
+
+impl PaletteExtractor {
+    pub fn from_image_file(file: String) -> Self {
+        Self {image_file: Some(file), cluster_maker: None, temp_k: 0}
+    }
+
+    pub fn with_k(mut self, k: u32) -> Self {
+        self.temp_k = k;
+        self
+    }
+
+    pub fn extract(&mut self, iters: u32) -> Vec<[u32; 3]>{
+        let mut pixels: Vec<[u32; 3]> = Vec::new();
+        if let Some(img) = &self.image_file {
+            let image = Reader::open(img) //read image from filesystem
+                .expect(format!("Failed to load image: {:?}", img).as_ref())
+                .decode()
+                .expect("Failed to decode image"); //FIXME: improve
+
+            pixels = image.pixels().map(|(x, y, pixel)| { //read every pixel
+                [pixel.channels()[0] as u32
+                , pixel.channels()[1] as u32
+                , pixel.channels()[2] as u32]
+                //ignore alpha
+            }).collect();
+            pixels.shuffle(&mut thread_rng()) //shuffle for better results i guess
+        }
+        self.cluster_maker = Some(ClusterMaker::new(self.temp_k).with_data(&pixels));
+        self.cluster_maker.as_mut().unwrap().cluster(iters);
+        self.cluster_maker.as_ref().unwrap().clusters.iter().map(|cluster|{
+            cluster.centroid
+        }).collect()
     }
 }
 
@@ -97,23 +139,7 @@ impl ClusterMaker {
         }        
     }
 
-    /// First centroids are just random
-    /*pub fn calculate_first_centroids(&self) -> Vec<[u32; 3]> {
-        let mut i: usize = 0;
-        let mut result = Vec::new();
-        while i < self.k as usize{ //first k clusters
-            let centroid = self.data[rand::thread_rng().gen_range(0..self.data.len())];
-            if result.contains(&centroid) { //cant have repeating ones
-                continue;
-            }
-            result.push(centroid);
-            i += 1;
-        }
-        result
-    }*/
-
     pub fn init(&mut self) {
-        println!("{:?}", "init!");
         let mut i: usize = 0;
         while i < self.k as usize {
             let centroid = self.data[rand::thread_rng().gen_range(0..self.data.len())];
@@ -126,38 +152,12 @@ impl ClusterMaker {
             if repeated {
                 continue;
             }
-            println!("k: {:?}, i: {:?}, {:?}", self.k, i, centroid);
             self.clusters.push(Cluster::new(centroid));
             i += 1;
         }
     }
 
-    /// any except first iteration
-    /*pub fn calculate_centroids(&self) -> Vec<[u32; 3]> {
-        self.centroids.iter().map(|centroid|{
-            self.get_cluster_avg(centroid)
-        }).collect()
-    }*/
-    /*/
-    pub fn get_cluster_avg(&self, centroid: &[u32; 3]) -> [u32; 3] {
-        let mut sum = [0, 0, 0];
-        let mut count = 0; //wont hurt anybody
-        self.clusters.get(centroid)
-            .expect("failed to get ref to clusters in get_cluster_avg")
-            .iter().for_each(|data_point|{ //get every rgb component
-                for i in 0..sum.len() {
-                    sum[i] += data_point[i];
-                }
-                count += 1;
-            });
-        if count == 0 { //average of centroid is centroid i guess
-            return centroid.clone();
-        }
-        for i in 0..sum.len() {
-            sum[i] = (sum[i] as f32 / count as f32) as u32;
-        }
-        sum
-    }*/
+
 
     pub fn compute_clusters(&mut self) {
         //for each data point, calculate each distance to each cluster
@@ -190,15 +190,6 @@ impl ClusterMaker {
             centroid.clean();
         })
     }
-
-    /*fn add_to_avg(&mut self, centroid: &[u32; 3], data_point: &[u32; 3]) -> [u32;3]{
-        let (mut a, mut b) = self.current_avgs[centroid];
-        a[0] += data_point[0];//rgb
-        a[1] += data_point[1];
-        a[2] += data_point[2];
-        b += 1;
-        data_point
-    }*/
 
     pub fn calculate_centroid_distance(&self, data_point: &[u32; 3]) -> Vec<u32> {
         /*self.centroids.iter().map(|centroid| {
@@ -251,7 +242,7 @@ mod test {
     use rand::thread_rng;
     use rand::prelude::SliceRandom;
 
-    use super::{ClusterMaker, process_image};
+    use super::{ClusterMaker, process_image, PaletteExtractor};
     use super::Cluster;
 
     #[test]
@@ -282,5 +273,13 @@ mod test {
         cluster.add([0, 0, 100]);
 
         println!("cluster: {:?}, {:?}", cluster, cluster.get_next_centroid());
+    }
+
+    #[test]
+    fn test_extractor() {
+        let result = PaletteExtractor::from_image_file("test.jpg".to_owned())
+            .with_k(5)
+            .extract(5);
+        println!("result: {:?}", result)
     }
 }

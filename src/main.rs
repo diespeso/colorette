@@ -34,11 +34,6 @@ fn index(jar: &CookieJar<'_>) -> String {
     }*/
 }
 
-#[get("/profile")]
-fn profile(jar: &CookieJar<'_>) -> String {
-    unimplemented!()
-}
-
 #[post("/auth")]
 fn auth(jar: &CookieJar<'_>) -> Result<Json<AuthToken>, errors::AuthError> {
     let pending = jar.get_pending("jwt");
@@ -140,5 +135,22 @@ fn rocket() -> _ {
     rocket::build()
     .mount("/", routes![index, build_dir])
     .mount("/api", routes![auth, create_user, get_user, update_user, delete_user, get_user_list])
-
+    .mount("/api", routes![routes::session::create_session])
 }
+
+/*
+use std::env;
+use crate::engine::PaletteExtractor;
+fn main() {
+    let args = env::args().collect::<Vec<String>>();
+    if args.len() < 4 {
+        println!("{:?}", "args should be: <filename> <k> <iterations>");
+        return
+    }
+    let palette = PaletteExtractor::from_image_file(args[1].clone())
+        .with_k(args[2].parse::<u32>().expect("wrong k value in command line"))
+        .extract(args[3].parse::<u32>().expect("wrong iteration value in command line"));
+    println!("palette: {:?}", palette);
+}*/
+
+

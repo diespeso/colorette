@@ -131,7 +131,7 @@ fn delete_user(id: i32) -> String {
 
 #[launch]
 fn rocket() -> _ {
-    database::create_schema();
+    database::create_schema().expect("failed in db creation schema");
     rocket::build()
     .mount("/", routes![index, build_dir])
     .mount("/api", routes![auth, create_user, get_user, update_user, delete_user, get_user_list])

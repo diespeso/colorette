@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::fs;
 
 use mysql::*;
 use mysql::prelude::*;
@@ -22,6 +23,10 @@ pub fn create(user: User) -> StdResult<User, Box<StdError>> {
                 "pass" => sha256(user.pass.clone()), //TODO: Reconsiderar si deberia encriptar aqui o al recibir el request
             }
     )?;
+    //create user img directory
+    if let Err(io_error) = fs::create_dir_all(format!("./user_images/{}", user.email.clone())) {
+        return Err(Box::new(io_error))
+    }
     Ok(user)
 }
 

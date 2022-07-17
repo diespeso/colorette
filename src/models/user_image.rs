@@ -1,4 +1,6 @@
 use rocket::serde::{Deserialize, Serialize};
+use rocket::form::Form;
+use rocket::fs::TempFile;
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize, Clone)]
 #[serde(crate = "rocket::serde")]
@@ -24,4 +26,10 @@ impl UserImage {
             );
         "#
     }
+}
+
+#[derive(FromForm, Debug)]
+pub struct UserImageForm<'a> {
+    pub name: String,
+    pub file: TempFile<'a>
 }

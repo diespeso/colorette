@@ -19,7 +19,7 @@ pub fn create_session(user: Json<models::User>) -> Result<Json<TokenResponse>, e
                 return Err(errors::SessionError::auth_error("Wrong password".to_string()))
             }
             //generate jwt
-            match encrypt::sign_token(json!({"email": result.email}), "SECRETO") {
+            match encrypt::sign_token(encrypt::AuthToken::new(-1, user_data.email), "SECRETO") {
                 Ok(t) => {
                     Ok(Json::from(TokenResponse{jwt: t})) //send generated token
                 },

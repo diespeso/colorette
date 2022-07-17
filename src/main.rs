@@ -136,6 +136,7 @@ fn rocket() -> _ {
     .mount("/", routes![index, build_dir])
     .mount("/api", routes![auth, create_user, get_user, update_user, delete_user, get_user_list])
     .mount("/api", routes![routes::session::create_session])
+    .mount("/api", routes![routes::user_image::upload_user_image])
 }
 
 /*

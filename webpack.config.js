@@ -1,10 +1,10 @@
 const path = require('path')
 
 module.exports = {
-    entry: path.join(__dirname, "react", "./signup.jsx"),
+    entry: path.join(__dirname, "react", "./image_uploader.jsx"),
     output: {
         path: path.resolve(__dirname, "./build"),
-        filename: 'signup.js'
+        filename: 'image_uploader.js'
     },
     module: {
         rules: [

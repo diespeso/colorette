@@ -2,6 +2,9 @@ use sha2::{Sha256, Digest};
 use jsonwebtoken::{errors::Result, TokenData, encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey};
 use rocket::serde::{Deserialize, Serialize, json::Json, json::json, self};
 
+use crate::helpers::{StdError, StdResult};
+use crate::errors;
+
 
 /// Generates a Hashed hex string of 256 bytes.
 pub fn sha256(data: impl AsRef<[u8]>) -> String {
@@ -25,13 +28,13 @@ pub fn verify_sha256(hashed: &String, string: &String) -> bool {
 #[serde(crate = "rocket::serde")]
 pub struct AuthToken {
     user_id: i32,
-    username: String,
+    pub username: String,
     exp: usize,
 }
 
 impl AuthToken {
     pub fn new(user_id: i32, username: String) -> Self {
-        Self{user_id, username, exp: 1656983112363}
+        Self{user_id, username, exp: 1659999912363} //set date, should fin a better way
     }
 }
 
@@ -39,10 +42,20 @@ pub fn sign_token(payload: impl Serialize, secret: &str) -> Result<String> {
     encode(&Header::default(), &payload, &EncodingKey::from_secret(secret.as_ref()))
 }
 
-pub fn verify_token(token: &str, secret: &str) -> () {
-    println!("token: {}", token);
+/**
+ * Most restrictive function ever methinks
+ */
+pub fn verify_token(token: &str, secret: &str) -> StdResult<TokenData<AuthToken>, Box<StdError>> {
+    //println!("token: {}", token);
     let payload = decode::<AuthToken>(&token, &DecodingKey::from_secret(secret.as_ref()), &Validation::new(Algorithm::HS256));
-    println!("{:?}", payload);
+    //println!("{:?}", payload);
+    if let Ok(token_data) = payload {
+        Ok(token_data)
+    } else {
+        Err(Box::new(
+            errors::AuthError::unreadable(token.to_string())
+        ))
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 pub mod user;
-
+pub mod user_image;
 use std::collections::HashMap;
 
 #[derive(Debug)]

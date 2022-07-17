@@ -14,6 +14,10 @@ pub fn create_session(user: Json<models::User>) -> Result<Json<TokenResponse>, e
     let read = controllers::user::search(search_data);
     match read { 
         Ok(result) => { //user found
+            //check password
+            if !encrypt::verify_sha256(&result.pass, &user_data.pass) {
+                return Err(errors::SessionError::auth_error("Wrong password".to_string()))
+            }
             //generate jwt
             match encrypt::sign_token(json!({"email": result.email}), "SECRETO") {
                 Ok(t) => {

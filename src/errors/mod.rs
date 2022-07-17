@@ -37,7 +37,7 @@ impl Error for AuthError {
 pub enum SessionError {
     #[response(status=404)]
     UserNotFound(String),
-    #[response(status=403)]
+    #[response(status=401)]
     AuthError(String)
 }
 

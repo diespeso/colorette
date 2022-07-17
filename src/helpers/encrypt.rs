@@ -14,6 +14,13 @@ pub fn sha256(data: impl AsRef<[u8]>) -> String {
     ).collect()
 }
 
+pub fn verify_sha256(hashed: &String, string: &String) -> bool {
+    if hashed == &sha256(string) {
+        return true
+    }
+    return false
+} 
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct AuthToken {

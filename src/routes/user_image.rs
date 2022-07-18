@@ -1,7 +1,8 @@
 use rocket::serde::{json::Json, json::json, Serialize, Deserialize};
 use rocket::form::Form;
 use rocket::http::CookieJar;
-use rocket::response::Responder;
+use rocket::response::{Responder};
+use rocket::fs::NamedFile;
 
 use uuid::Uuid;
 
@@ -66,4 +67,33 @@ pub async fn upload_user_image(mut image_form: Form<UserImageForm<'_>>,
     Ok(
         Json::from(UserImage::new("".to_string(), "".to_string(), "".to_string()))
     )*/
+}
+
+#[get("/user_images")]
+pub async fn list_images(jar: &CookieJar<'_>) -> Result<NamedFile, String>{
+    let mut flag = false;
+    let mut username = "".to_string();
+    if let Some(token) = jar.get_pending("jwt") { //user auth cookie present
+        if let Ok(auth_token_data) = encrypt::verify_token(token.value(), "SECRETO") {
+            username = auth_token_data.claims.username;
+            flag = true;
+        } else {
+            return Err("fallo lol".to_string());
+        }
+    } else {
+        unimplemented!()
+    }
+    //for some reason this has to be outside
+    return Ok(NamedFile::open("./test.jpg").await.unwrap())
+}
+
+#[derive(FromForm, Debug)]
+pub struct ImageParams<'a> {
+    pub uuid: &'a str,
+}
+
+#[get("/user_images?<params..>")]
+pub async fn get_image(params: ImageParams<'_>) -> Result<NamedFile, String> {
+    println!("mostrando: {:?}",  params);
+    unimplemented!()
 }
